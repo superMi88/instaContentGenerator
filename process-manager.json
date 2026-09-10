@@ -3,12 +3,13 @@
   "name": "instaContentGenerator",
   "repository": "superMi88/instaContentGenerator",
   "pm2Process": "instaContentGenerator",
+  "envPath": ".env",
   "requirements": [
     {
       "key": "PORT",
       "type": "port",
       "label": "Webserver Port",
-      "defaultValue": "3000",
+      "defaultValue": "3003",
       "description": "Port auf dem die Next.js Webanwendung lauscht"
     },
     {
