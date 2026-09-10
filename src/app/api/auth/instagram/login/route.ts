@@ -11,8 +11,27 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const publicBaseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+  let publicBaseUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const forwardedProto = req.headers.get('x-forwarded-proto');
+  const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
+
+  if (!publicBaseUrl || publicBaseUrl.includes('localhost')) {
+    if (forwardedHost) {
+      const proto = forwardedProto || 'https';
+      publicBaseUrl = `${proto}://${forwardedHost}`;
+    } else {
+      publicBaseUrl = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+    }
+  }
+
+  if (
+    publicBaseUrl.startsWith('http://') &&
+    !publicBaseUrl.includes('localhost') &&
+    !publicBaseUrl.includes('127.0.0.1')
+  ) {
+    publicBaseUrl = publicBaseUrl.replace('http://', 'https://');
+  }
+  publicBaseUrl = publicBaseUrl.replace(/\/$/, '');
 
   const redirectUri = `${publicBaseUrl}/api/auth/instagram/callback`;
 
