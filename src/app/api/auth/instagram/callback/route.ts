@@ -27,6 +27,14 @@ export async function GET(req: NextRequest) {
     process.env.META_APP_SECRET ||
     process.env.INSTAGRAM_APP_SECRET;
 
+  if (!appId || !appSecret) {
+    return NextResponse.redirect(
+      `${publicBaseUrl}/?auth_error=${encodeURIComponent(
+        'META_APP_ID oder META_APP_SECRET ist auf dem Server nicht konfiguriert.'
+      )}`
+    );
+  }
+
   const redirectUri = `${publicBaseUrl}/api/auth/instagram/callback`;
 
   try {
