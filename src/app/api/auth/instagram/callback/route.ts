@@ -97,6 +97,7 @@ export async function GET(req: NextRequest) {
 
     const accountsRes = await fetch(accountsUrl.toString());
     const accountsData = await accountsRes.json();
+    console.log('Accounts data from Meta /me/accounts:', JSON.stringify(accountsData));
 
     let instagramUserId = '';
     let instagramUsername = '';
