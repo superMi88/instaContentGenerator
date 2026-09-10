@@ -797,86 +797,7 @@ export default function DashboardPage() {
   };
 
 
-  // 1. Loading state while checking auth
-  if (authStatus === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090D16]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs text-slate-400">Verbindung wird geprüft...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // 2. Gated Login Screen: Only show "Mit Instagram anmelden" if not connected
-  if (!authStatus.connected) {
-    return (
-      <div className="min-h-screen bg-[#090D16] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        {/* Background Ambient Glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-tr from-pink-600/20 via-purple-600/20 to-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-md w-full glass-panel border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10 flex flex-col items-center text-center space-y-6">
-          {/* Logo Badge */}
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-purple-600/25">
-            <Layers className="w-8 h-8" />
-          </div>
-
-          <div>
-            <h1 className="text-2xl font-extrabold text-white tracking-tight">
-              InstaCarousel Studio
-            </h1>
-            <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-              Vollautomatisierte Erstellung und Veröffentlichung von Instagram-Karussell-Posts mit Gemini KI und pixelgenauem 1080x1350 Rendering.
-            </p>
-          </div>
-
-          {/* Auth Error Banner if present */}
-          {authError && (
-            <div className="w-full p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 text-left flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold block">Anmeldung fehlgeschlagen:</span>
-                <span className="text-[11px] text-rose-300/90">{authError}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Feature Bullets */}
-          <div className="w-full bg-slate-950/60 rounded-2xl p-4 border border-slate-800/80 text-left space-y-2.5">
-            <div className="flex items-center gap-2 text-xs text-slate-300">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Gemini 2.5 Flash Chat & Image Prompting</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-300">
-              <Instagram className="w-3.5 h-3.5 text-pink-400" />
-              <span>Direktes Posten in deinen Instagram-Feed</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-300">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Sichere lokale Dateispeicherung (/data/posts/)</span>
-            </div>
-          </div>
-
-          {/* Big Connect Button */}
-          <a
-            href="/api/auth/instagram/login"
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:opacity-95 text-white text-sm font-bold shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2.5 transition active:scale-[0.98]"
-          >
-            <Instagram className="w-5 h-5" />
-            <span>Mit Instagram verbinden</span>
-            <ArrowRight className="w-4 h-4" />
-          </a>
-
-          <p className="text-[11px] text-slate-500">
-            Erfordert einen Instagram Creator- oder Business-Account
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // 3. Full Dashboard: Archive as Start Page / Dedicated Page or Editor View
+  // Render Dashboard
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header Bar */}
@@ -895,6 +816,25 @@ export default function DashboardPage() {
         onToggleAiDrawer={() => setIsAiDrawerOpen(!isAiDrawerOpen)}
         postTopic={currentPost.topic}
       />
+
+      {/* Auth Error Banner if present */}
+      {authError && (
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-3">
+          <div className="p-3 rounded-2xl bg-rose-950/50 border border-rose-800/60 text-xs text-rose-300 flex items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span><strong>Instagram-Meldung:</strong> {authError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAuthError(null)}
+              className="text-xs text-rose-300 hover:text-white px-2.5 py-1 rounded-lg bg-rose-900/40 hover:bg-rose-800/60 transition"
+            >
+              Ausblenden
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main View: Archive vs Editor */}
       {appView === 'archive' ? (
