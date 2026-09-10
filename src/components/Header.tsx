@@ -7,12 +7,14 @@ import {
   Save, 
   Instagram, 
   PlusCircle, 
-  Layers,
-  CheckCircle2,
-  Unlink,
-  ExternalLink,
-  ArrowLeft,
-  Sparkles
+  Layers, 
+  CheckCircle2, 
+  Unlink, 
+  ExternalLink, 
+  ArrowLeft, 
+  Sparkles,
+  User,
+  LogOut
 } from 'lucide-react';
 import { PostStatus } from '@/types/post';
 
@@ -52,6 +54,8 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [authStatus, setAuthStatus] = useState<IgAuthStatus>({ connected: false });
   const [showAuthMenu, setShowAuthMenu] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const fetchAuthStatus = async () => {
     try {
@@ -63,8 +67,22 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      if (data.authenticated) {
+        setUserEmail(data.email);
+      }
+    } catch {
+      setUserEmail(null);
+    }
+  };
+
   useEffect(() => {
     fetchAuthStatus();
+    fetchCurrentUser();
+
     // Check for auth callback param in URL
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -80,6 +98,13 @@ export const Header: React.FC<HeaderProps> = ({
       await fetch('/api/auth/instagram/status', { method: 'DELETE' });
       setAuthStatus({ connected: false });
       setShowAuthMenu(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (confirm('Möchtest du dich wirklich abmelden?')) {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
     }
   };
 
@@ -121,28 +146,33 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {/* Instagram Connect / Account Indicator */}
           <div className="relative">
             {authStatus.connected ? (
               <button
+                type="button"
                 onClick={() => setShowAuthMenu(!showAuthMenu)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-xs font-semibold text-emerald-300 transition"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-xs font-semibold text-emerald-300 transition shadow-sm"
                 title="Instagram Account Einstellungen"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
                 <Instagram className="w-3.5 h-3.5 text-pink-400" />
-                <span className="hidden sm:inline">@{authStatus.username || 'Verbunden'}</span>
+                <span className="font-mono text-[11px] truncate max-w-[110px] sm:max-w-[140px]">
+                  @{authStatus.username || 'Verbunden'}
+                </span>
               </button>
             ) : (
               <a
                 href="/api/auth/instagram/login"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs font-semibold shadow-md shadow-pink-600/20 transition"
-                title="Mit Facebook / Instagram einloggen"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md shadow-pink-600/20 transition active:scale-95 ring-1 ring-white/10"
+                title="Mit Instagram / Facebook verbinden"
               >
-                <Instagram className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Mit Instagram verbinden</span>
-                <span className="sm:hidden">Login</span>
+                <Instagram className="w-3.5 h-3.5 text-pink-200" />
+                <span className="font-medium">Instagram verbinden</span>
               </a>
             )}
 
@@ -153,13 +183,18 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="p-2 rounded-xl bg-pink-500/10 text-pink-400">
                     <Instagram className="w-4 h-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-xs font-bold text-white flex items-center gap-1">
-                      <span>@{authStatus.username}</span>
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <span className="truncate">@{authStatus.username}</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     </div>
+                    {authStatus.pageName && (
+                      <div className="text-[10px] text-slate-400 truncate">
+                        Seite: {authStatus.pageName}
+                      </div>
+                    )}
                     {authStatus.userId && (
-                      <div className="text-[10px] text-slate-400 font-mono">
+                      <div className="text-[10px] text-slate-500 font-mono truncate">
                         ID: {authStatus.userId}
                       </div>
                     )}
@@ -175,6 +210,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <ExternalLink className="w-3 h-3 text-slate-500" />
                   </a>
                   <button
+                    type="button"
                     onClick={handleDisconnect}
                     className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs text-rose-400 hover:bg-rose-500/10 transition"
                   >
@@ -193,11 +229,11 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={onToggleAiDrawer}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold transition active:scale-95 shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold transition active:scale-95 shadow-sm"
                   title="KI Content Assistent öffnen"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                  <span>KI-Assistent</span>
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="hidden md:inline">KI-Assistent</span>
                 </button>
               )}
 
@@ -206,7 +242,7 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={onSave}
                 disabled={isSaving}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition"
                 title="Im Dateisystem speichern"
               >
                 {isSaving ? (
@@ -222,12 +258,50 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onNewPost}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition active:scale-95"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Neuer Post</span>
             </button>
           )}
+
+          {/* User Profile / Logout Button */}
+          <div className="relative pl-1 border-l border-slate-800">
+            <button
+              type="button"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs transition"
+              title={userEmail ? `Angemeldet als ${userEmail}` : 'Benutzerkonto'}
+            >
+              <div className="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center text-slate-300">
+                <User className="w-3.5 h-3.5" />
+              </div>
+              {userEmail && (
+                <span className="hidden lg:inline text-[11px] font-medium text-slate-300 max-w-[120px] truncate">
+                  {userEmail.split('@')[0]}
+                </span>
+              )}
+            </button>
+
+            {showUserMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2.5 z-50 animate-in fade-in">
+                {userEmail && (
+                  <div className="px-2 py-1.5 mb-1.5 border-b border-slate-800">
+                    <div className="text-[10px] text-slate-500 font-medium">Angemeldet als</div>
+                    <div className="text-xs font-semibold text-slate-200 truncate">{userEmail}</div>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Abmelden</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

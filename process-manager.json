@@ -73,6 +73,27 @@
       "label": "Cron API Secret",
       "defaultValue": "",
       "description": "Geheimer Schlüssel zum Schutz des /api/cron Endpunkts"
+    },
+    {
+      "key": "AUTH_EMAIL",
+      "type": "text",
+      "label": "Login E-Mail-Adresse",
+      "defaultValue": "admin@kleiner-wald-server.de",
+      "description": "E-Mail-Adresse für den geschützten Zugriff auf die App"
+    },
+    {
+      "key": "AUTH_PASSWORD",
+      "type": "text",
+      "label": "Login Passwort",
+      "defaultValue": "admin",
+      "description": "Passwort für den geschützten Zugriff auf die App"
+    },
+    {
+      "key": "AUTH_SECRET",
+      "type": "text",
+      "label": "Auth Session Secret",
+      "defaultValue": "insta-content-generator-secret-key-2026",
+      "description": "Geheimer Schlüssel zur Signierung von Anmelde-Sessions"
     }
   ]
 }
