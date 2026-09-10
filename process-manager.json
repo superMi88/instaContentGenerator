@@ -62,10 +62,10 @@
     },
     {
       "key": "NEXT_PUBLIC_APP_URL",
-      "type": "domain",
+      "type": "text",
       "label": "Öffentliche Web-URL",
-      "defaultValue": "http://localhost:3000",
-      "description": "Öffentlich erreichbare URL der App (für Bildabruf durch Meta Graph API)"
+      "defaultValue": "",
+      "description": "Öffentlich erreichbare URL der App (z. B. https://insta.deinedomain.de für Bildabruf durch Meta Graph API)"
     },
     {
       "key": "CRON_SECRET",
