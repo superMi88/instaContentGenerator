@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
     'instagram_content_publish',
     'pages_show_list',
     'pages_read_engagement',
+    'business_management',
     'public_profile',
   ].join(',');
 

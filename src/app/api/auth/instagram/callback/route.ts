@@ -118,6 +118,44 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 3b. If /me/accounts had no Instagram page, query /me/businesses (Meta Business Suite pages)
+    if (!instagramUserId) {
+      try {
+        const bizUrl = new URL('https://graph.facebook.com/v21.0/me/businesses');
+        bizUrl.searchParams.append(
+          'fields',
+          'id,name,owned_pages{id,name,access_token,instagram_business_account{id,username,name}},client_pages{id,name,access_token,instagram_business_account{id,username,name}}'
+        );
+        bizUrl.searchParams.append('access_token', userAccessToken);
+
+        const bizRes = await fetch(bizUrl.toString());
+        const bizData = await bizRes.json();
+        console.log('Businesses data from Meta /me/businesses:', JSON.stringify(bizData));
+
+        if (bizData.data && Array.isArray(bizData.data)) {
+          for (const biz of bizData.data) {
+            const allPages = [
+              ...(biz.owned_pages?.data || []),
+              ...(biz.client_pages?.data || []),
+            ];
+            for (const page of allPages) {
+              if (page.instagram_business_account?.id) {
+                pageId = page.id;
+                pageName = page.name;
+                pageAccessToken = page.access_token;
+                instagramUserId = page.instagram_business_account.id;
+                instagramUsername = page.instagram_business_account.username || 'ehefraugesucht';
+                break;
+              }
+            }
+            if (instagramUserId) break;
+          }
+        }
+      } catch (bizErr) {
+        console.warn('Businesses query failed:', bizErr);
+      }
+    }
+
     // 4. Fallback: Inspect token via /debug_token to extract granular_scopes target_ids
     if (!instagramUserId) {
       try {
