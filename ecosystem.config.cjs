@@ -2,6 +2,7 @@ module.exports = {
   apps: [
     {
       name: "instaContentGenerator",
+      cwd: "/home/instaContentGenerator",
       script: "node_modules/next/dist/bin/next",
       args: "start -p 3003",
       exec_mode: "fork",

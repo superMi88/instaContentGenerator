@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
   const appId =
-    process.env.META_APP_ID || process.env.INSTAGRAM_APP_ID || '1724140925308828';
+    process.env.META_APP_ID || process.env.INSTAGRAM_APP_ID;
 
   if (!appId) {
     return NextResponse.json(

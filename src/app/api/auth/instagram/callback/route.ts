@@ -22,11 +22,10 @@ export async function GET(req: NextRequest) {
   }
 
   const appId =
-    process.env.META_APP_ID || process.env.INSTAGRAM_APP_ID || '1724140925308828';
+    process.env.META_APP_ID || process.env.INSTAGRAM_APP_ID;
   const appSecret =
     process.env.META_APP_SECRET ||
-    process.env.INSTAGRAM_APP_SECRET ||
-    'b0bdf041db097918a70954932a5cfbf2';
+    process.env.INSTAGRAM_APP_SECRET;
 
   const redirectUri = `${publicBaseUrl}/api/auth/instagram/callback`;
 
