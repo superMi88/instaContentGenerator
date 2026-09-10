@@ -118,13 +118,79 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 4. Fallback: Inspect token via /debug_token to extract granular_scopes target_ids
+    if (!instagramUserId) {
+      try {
+        const debugUrl = new URL('https://graph.facebook.com/v21.0/debug_token');
+        debugUrl.searchParams.append('input_token', userAccessToken);
+        debugUrl.searchParams.append('access_token', `${appId}|${appSecret}`);
+
+        const debugRes = await fetch(debugUrl.toString());
+        const debugData = await debugRes.json();
+        console.log('Debug token data:', JSON.stringify(debugData));
+
+        const targetIds = new Set<string>();
+        if (debugData.data?.granular_scopes) {
+          for (const item of debugData.data.granular_scopes) {
+            if (item.target_ids && Array.isArray(item.target_ids)) {
+              for (const tid of item.target_ids) {
+                targetIds.add(tid);
+              }
+            }
+          }
+        }
+
+        console.log('Discovered target IDs from token:', Array.from(targetIds));
+
+        for (const tid of Array.from(targetIds)) {
+          try {
+            const nodeUrl = new URL(`https://graph.facebook.com/v21.0/${tid}`);
+            nodeUrl.searchParams.append(
+              'fields',
+              'id,username,name,access_token,instagram_business_account{id,username,name}'
+            );
+            nodeUrl.searchParams.append('access_token', userAccessToken);
+
+            const nodeRes = await fetch(nodeUrl.toString());
+            const nodeData = await nodeRes.json();
+            console.log(`Node ${tid} inspection:`, JSON.stringify(nodeData));
+
+            if (nodeData.instagram_business_account?.id) {
+              pageId = nodeData.id;
+              pageName = nodeData.name;
+              pageAccessToken = nodeData.access_token || userAccessToken;
+              instagramUserId = nodeData.instagram_business_account.id;
+              instagramUsername = nodeData.instagram_business_account.username || 'ehefraugesucht';
+              break;
+            } else if (nodeData.username) {
+              instagramUserId = nodeData.id;
+              instagramUsername = nodeData.username;
+              pageAccessToken = userAccessToken;
+              break;
+            }
+          } catch (nodeErr) {
+            console.warn(`Error querying node ${tid}:`, nodeErr);
+          }
+        }
+      } catch (debugErr) {
+        console.warn('Debug token resolution error:', debugErr);
+      }
+    }
+
+    // 5. Fallback: If INSTAGRAM_USER_ID is configured in environment
+    if (!instagramUserId && process.env.INSTAGRAM_USER_ID) {
+      instagramUserId = process.env.INSTAGRAM_USER_ID;
+      instagramUsername = 'ehefraugesucht';
+      pageAccessToken = userAccessToken;
+    }
+
     if (!instagramUserId) {
       const pageNames = accountsData.data?.map((p: any) => p.name).join(', ') || 'keine';
       console.warn('Kein Instagram Business Account gefunden. Gefundene Seiten:', pageNames);
       return NextResponse.redirect(
         `${publicBaseUrl}/?auth_error=${encodeURIComponent(
           accountsData.data?.length === 0
-            ? 'Meta hat keine Facebook-Seite gemeldet. Bitte hake deine Facebook-Seite beim Anmeldedialog an oder trage INSTAGRAM_USER_ID direkt in .env.local ein.'
+            ? 'Meta hat keine Facebook-Seite gemeldet. Bitte trage deine INSTAGRAM_USER_ID in die .env ein oder verbinde die Seite in den Instagram-Einstellungen.'
             : `Gefundene Seite(n): ${pageNames}, aber es ist kein Instagram Business-Konto damit verknüpft.`
         )}`
       );
