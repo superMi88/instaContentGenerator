@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "instaContentGenerator",
+  "repository": "superMi88/instaContentGenerator",
+  "pm2Process": "instaContentGenerator",
+  "requirements": [
+    {
+      "key": "PORT",
+      "type": "port",
+      "label": "Webserver Port",
+      "defaultValue": "3000",
+      "description": "Port auf dem die Next.js Webanwendung lauscht"
+    },
+    {
+      "key": "GOOGLE_API_KEY",
+      "type": "secret",
+      "label": "Google Gemini API Key",
+      "description": "API-Schlüssel für Google Gemini SDK zur Content-Generierung"
+    },
+    {
+      "key": "GEMINI_API_KEY",
+      "type": "secret",
+      "label": "Gemini API Key Alias",
+      "description": "Alternativer Alias für GOOGLE_API_KEY"
+    },
+    {
+      "key": "META_APP_ID",
+      "type": "text",
+      "label": "Meta App-ID",
+      "description": "Facebook/Meta Graph API App ID"
+    },
+    {
+      "key": "META_APP_SECRET",
+      "type": "secret",
+      "label": "Meta App-Geheimcode",
+      "description": "Facebook/Meta App Secret"
+    },
+    {
+      "key": "INSTAGRAM_APP_ID",
+      "type": "text",
+      "label": "Instagram App-ID",
+      "description": "Instagram App ID für Graph API Zugriff"
+    },
+    {
+      "key": "INSTAGRAM_APP_SECRET",
+      "type": "secret",
+      "label": "Instagram App Secret",
+      "description": "Instagram App Secret für Token-Austausch"
+    },
+    {
+      "key": "INSTAGRAM_USER_ID",
+      "type": "text",
+      "label": "Instagram User / Account ID",
+      "description": "Instagram Business/Creator Account ID für Carousel Uploads"
+    },
+    {
+      "key": "INSTAGRAM_ACCESS_TOKEN",
+      "type": "secret",
+      "label": "Instagram User Access Token",
+      "description": "Langlebiger Access Token mit instagram_content_publish Berechtigung"
+    },
+    {
+      "key": "NEXT_PUBLIC_APP_URL",
+      "type": "domain",
+      "label": "Öffentliche Web-URL",
+      "defaultValue": "http://localhost:3000",
+      "description": "Öffentlich erreichbare URL der App (für Bildabruf durch Meta Graph API)"
+    },
+    {
+      "key": "CRON_SECRET",
+      "type": "secret",
+      "label": "Cron API Secret",
+      "defaultValue": "",
+      "description": "Geheimer Schlüssel zum Schutz des /api/cron Endpunkts"
+    }
+  ]
+}
