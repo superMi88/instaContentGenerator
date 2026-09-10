@@ -246,20 +246,26 @@ export async function GET(req: NextRequest) {
       connectedAt: new Date().toISOString(),
     });
 
-    // If INSTAGRAM_USER_ID in .env.local is empty and we found it, update .env.local automatically!
+    // If INSTAGRAM_USER_ID in .env or .env.local is empty and we found it, update automatically!
     if (instagramUserId) {
       try {
-        const envPath = path.join(process.cwd(), '.env.local');
-        let envContent = await fs.readFile(envPath, 'utf-8');
-        if (envContent.includes('INSTAGRAM_USER_ID=')) {
-          envContent = envContent.replace(
-            /INSTAGRAM_USER_ID=.*(\r?\n)/,
-            `INSTAGRAM_USER_ID=${instagramUserId}$1`
-          );
-          await fs.writeFile(envPath, envContent, 'utf-8');
+        const envFiles = ['.env', '.env.local'];
+        for (const file of envFiles) {
+          const envPath = path.join(process.cwd(), file);
+          try {
+            let envContent = await fs.readFile(envPath, 'utf-8');
+            if (envContent.includes('INSTAGRAM_USER_ID=')) {
+              envContent = envContent.replace(
+                /INSTAGRAM_USER_ID=.*(\r?\n|$)/,
+                `INSTAGRAM_USER_ID=${instagramUserId}\n`
+              );
+              await fs.writeFile(envPath, envContent, 'utf-8');
+              break;
+            }
+          } catch {}
         }
       } catch (e) {
-        console.warn('Could not auto-write to .env.local:', e);
+        console.warn('Could not auto-write to .env:', e);
       }
     }
 
