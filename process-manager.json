@@ -13,13 +13,13 @@
     },
     {
       "key": "GOOGLE_API_KEY",
-      "type": "secret",
+      "type": "text",
       "label": "Google Gemini API Key",
       "description": "API-Schlüssel für Google Gemini SDK zur Content-Generierung"
     },
     {
       "key": "GEMINI_API_KEY",
-      "type": "secret",
+      "type": "text",
       "label": "Gemini API Key Alias",
       "description": "Alternativer Alias für GOOGLE_API_KEY"
     },
@@ -31,7 +31,7 @@
     },
     {
       "key": "META_APP_SECRET",
-      "type": "secret",
+      "type": "text",
       "label": "Meta App-Geheimcode",
       "description": "Facebook/Meta App Secret"
     },
@@ -43,7 +43,7 @@
     },
     {
       "key": "INSTAGRAM_APP_SECRET",
-      "type": "secret",
+      "type": "text",
       "label": "Instagram App Secret",
       "description": "Instagram App Secret für Token-Austausch"
     },
@@ -55,7 +55,7 @@
     },
     {
       "key": "INSTAGRAM_ACCESS_TOKEN",
-      "type": "secret",
+      "type": "text",
       "label": "Instagram User Access Token",
       "description": "Langlebiger Access Token mit instagram_content_publish Berechtigung"
     },
@@ -68,7 +68,7 @@
     },
     {
       "key": "CRON_SECRET",
-      "type": "secret",
+      "type": "text",
       "label": "Cron API Secret",
       "defaultValue": "",
       "description": "Geheimer Schlüssel zum Schutz des /api/cron Endpunkts"
