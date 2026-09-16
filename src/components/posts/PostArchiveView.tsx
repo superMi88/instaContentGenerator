@@ -42,6 +42,7 @@ export const PostArchiveView: React.FC<PostArchiveViewProps> = ({
 }) => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'draft' | 'scheduled' | 'published'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
   const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
 
   // Filter posts by tab and search term
@@ -62,7 +63,7 @@ export const PostArchiveView: React.FC<PostArchiveViewProps> = ({
   });
 
   // Sort posts: Entwürfe immer zuerst, dann geplante nach Release-Datum, dann veröffentlichte
-  const sortedPosts = sortPostSummaries(filteredPosts);
+  const sortedPosts = sortPostSummaries(filteredPosts, sortDirection);
 
   const counts = {
     all: posts.length,
@@ -178,11 +179,20 @@ export const PostArchiveView: React.FC<PostArchiveViewProps> = ({
 
         {/* Right side: Search & Sort order info */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400">
-            <ArrowUpDown className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span className="hidden sm:inline">Sortierung: Entwürfe zuerst • Nach Release-Datum</span>
-            <span className="sm:hidden">Entwürfe zuerst</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-[11px] text-slate-300 transition cursor-pointer shadow-sm group"
+            title="Klicken, um Sortierreihenfolge umzukehren"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5 text-indigo-400 shrink-0 group-hover:rotate-180 transition-transform duration-300" />
+            <span className="hidden sm:inline">
+              Entwürfe zuerst • Geplant: {sortDirection === 'desc' ? 'Späteste zuerst ▾' : 'Früheste zuerst ▴'}
+            </span>
+            <span className="sm:hidden">
+              {sortDirection === 'desc' ? 'Späteste ▾' : 'Früheste ▴'}
+            </span>
+          </button>
 
           <div className="relative w-full sm:w-64">
             <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />

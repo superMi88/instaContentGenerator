@@ -3,12 +3,15 @@ import { PostSummary } from '@/types/post';
 /**
  * Sortiert Posts nach der gewünschten Priorität:
  * 1. Entwürfe ('draft') immer als erstes (neueste Entwürfe zuerst)
- * 2. Geplante Posts ('scheduled') nach frühestem geplantem Release-Datum
+ * 2. Geplante Posts ('scheduled') nach Release-Datum (Standard: Neuestes/späteres Datum zuerst, z. B. 17.09. vor 16.09.)
  * 3. Veröffentlichte Posts ('published') nach neuestem Veröffentlichungsdatum
  */
-export function sortPostSummaries(summaries: PostSummary[]): PostSummary[] {
+export function sortPostSummaries(
+  summaries: PostSummary[],
+  direction: 'desc' | 'asc' = 'desc'
+): PostSummary[] {
   return [...summaries].sort((a, b) => {
-    // 1. Entwürfe immer als erstes
+    // 1. Entwürfe ('draft') immer als erstes
     const aIsDraft = a.status === 'draft';
     const bIsDraft = b.status === 'draft';
     if (aIsDraft && !bIsDraft) return -1;
@@ -22,19 +25,24 @@ export function sortPostSummaries(summaries: PostSummary[]): PostSummary[] {
     // 2. Geplante vs. bereits veröffentlichte Beiträge
     const aIsScheduled = a.status === 'scheduled';
     const bIsScheduled = b.status === 'scheduled';
+
+    // Geplante Beiträge kommen vor bereits gesendeten Beiträgen
     if (aIsScheduled && !bIsScheduled) return -1;
     if (!aIsScheduled && bIsScheduled) return 1;
 
-    if (aIsScheduled && bIsScheduled) {
-      // Geplant: Chronologisch nächstes Release-Datum zuerst
-      const dateA = new Date(a.scheduledAt || a.createdAt).getTime();
-      const dateB = new Date(b.scheduledAt || b.createdAt).getTime();
+    const getDate = (p: PostSummary) => {
+      return new Date(p.scheduledAt || p.publishedAt || p.createdAt).getTime();
+    };
+
+    const dateA = getDate(a);
+    const dateB = getDate(b);
+
+    if (direction === 'desc') {
+      // Neuestes Datum zuerst (17.09. vor 16.09.)
+      return dateB - dateA;
+    } else {
+      // Frühestes Datum zuerst
       return dateA - dateB;
     }
-
-    // Veröffentlicht: Neueste Veröffentlichung zuerst
-    const dateA = new Date(a.publishedAt || a.createdAt).getTime();
-    const dateB = new Date(b.publishedAt || b.createdAt).getTime();
-    return dateB - dateA;
   });
 }
