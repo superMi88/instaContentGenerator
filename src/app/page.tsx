@@ -542,7 +542,7 @@ export default function DashboardPage() {
     }
   };
 
-  // Handle Gemini Chat generation + Image Set selection or auto image fallback
+  // Handle Gemini Chat generation with conversational agent and on-demand tool execution
   const handleGenerate = async (promptText: string) => {
     setIsLoadingChat(true);
 
@@ -556,128 +556,49 @@ export default function DashboardPage() {
     const updatedHistory = [...currentPost.chat_history, userMessage];
 
     try {
-      const contextInfo = currentPost.topic
-        ? `[Aktueller Projektkontext: Thema="${currentPost.topic}", Kategorie="${currentPost.category}", Slide 1="${currentPost.slides[0]?.text || ''}", Slide 2="${currentPost.slides[1]?.text || ''}"]\n\nNutzeranweisung: `
-        : '';
-
       const res = await fetch('/api/gemini/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `${contextInfo}${promptText}`,
+          prompt: promptText,
           history: updatedHistory,
+          currentPost: currentPost,
+          imageSets: imageSets,
         }),
       });
 
       const json = await res.json();
 
-      if (!res.ok || !json.data) {
+      if (!res.ok) {
         throw new Error(json.error || 'Fehler beim Abruf von Gemini');
       }
-
-      const generated = json.data;
 
       const modelMessage: ChatMessage = {
         id: `msg_${Date.now() + 1}`,
         role: 'model',
-        content: `Karussell angepasst!\n• Kategorie: ${generated.category}\n• Slide 1: "${generated.slide1_question}"\n• Slide 2: "${generated.slide2_answer}"`,
+        content: json.message || 'Antwort erhalten.',
         timestamp: new Date().toISOString(),
+        toolExecutions: json.toolExecutions || [],
       };
 
-      // Update slides
-      const updatedSlides = [...currentPost.slides];
-      if (updatedSlides.length >= 2) {
-        updatedSlides[0] = {
-          ...updatedSlides[0],
-          category: generated.category || updatedSlides[0].category,
-          text: generated.slide1_question || updatedSlides[0].text,
+      if (json.hasModifications && json.updatedPost) {
+        // AI executed tool(s) that changed slides or post metadata
+        const updatedPost: PostMeta = {
+          ...json.updatedPost,
+          chat_history: [...updatedHistory, modelMessage],
+          updatedAt: new Date().toISOString(),
         };
-        updatedSlides[1] = {
-          ...updatedSlides[1],
-          category: generated.category || updatedSlides[1].category,
-          text: generated.slide2_answer || updatedSlides[1].text,
-        };
-      }
-
-      let updatedPost: PostMeta = {
-        ...currentPost,
-        topic: promptText.slice(0, 40),
-        category: generated.category || currentPost.category,
-        slide1_question: generated.slide1_question || currentPost.slide1_question,
-        slide2_answer: generated.slide2_answer || currentPost.slide2_answer,
-        character_prompt: generated.character_prompt || currentPost.character_prompt,
-        instagram_caption: generated.instagram_caption || currentPost.instagram_caption,
-        colors: generated.suggested_colors
-          ? { ...currentPost.colors, ...generated.suggested_colors }
-          : currentPost.colors,
-        slides: updatedSlides,
-        chat_history: [...updatedHistory, modelMessage],
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Use active Image Set images if available
-      const activeSet = imageSets.find((s) => s.id === activeImageSetId) || imageSets[0];
-      if (activeSet && activeSet.images && activeSet.images.length > 0) {
-        if (updatedSlides.length >= 1 && activeSet.images[0]) {
-          updatedSlides[0] = { ...updatedSlides[0], imageUrl: activeSet.images[0].url };
-        }
-        if (updatedSlides.length >= 2) {
-          const secondImg = activeSet.images[1] || activeSet.images[0];
-          updatedSlides[1] = { ...updatedSlides[1], imageUrl: secondImg.url };
-        }
-        // Ensure image set items are available in gallery
-        const existingUrls = new Set((updatedPost.gallery || []).map((g) => g.url));
-        const newSetAssets: GalleryAsset[] = activeSet.images
-          .filter((item: ImageSetItem) => !existingUrls.has(item.url))
-          .map((item: ImageSetItem) => ({
-            id: `set_${item.id}`,
-            filename: item.filename,
-            url: item.url,
-            prompt: `${item.name} (${activeSet.name})`,
-            createdAt: item.createdAt,
-            isAiGenerated: false,
-          }));
-        if (newSetAssets.length > 0) {
-          updatedPost.gallery = [...newSetAssets, ...(updatedPost.gallery || [])];
-        }
         setCurrentPost(updatedPost);
         await savePost(updatedPost);
       } else {
-        // Save post text immediately
+        // Pure conversation or info retrieval without touching slides or carousel
+        const updatedPost: PostMeta = {
+          ...currentPost,
+          chat_history: [...updatedHistory, modelMessage],
+          updatedAt: new Date().toISOString(),
+        };
         setCurrentPost(updatedPost);
         await savePost(updatedPost);
-
-        // Auto-generate AI image in background based on character prompt if no set image
-        const imgPromptToUse = generated.character_prompt || updatedPost.character_prompt;
-        if (imgPromptToUse) {
-          try {
-            const imgRes = await fetch(`/api/posts/${updatedPost.id}/gallery`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                action: 'generate',
-                prompt: imgPromptToUse,
-                backgroundColorHex: updatedPost.colors.topBg,
-              }),
-            });
-            const imgData = await imgRes.json();
-            if (imgData.success && imgData.asset) {
-              const newSlides = [...updatedPost.slides];
-              if (newSlides.length > 0) {
-                newSlides[0] = { ...newSlides[0], imageUrl: imgData.asset.url };
-              }
-              updatedPost = {
-                ...updatedPost,
-                gallery: imgData.gallery,
-                slides: newSlides,
-              };
-              setCurrentPost(updatedPost);
-              await savePost(updatedPost);
-            }
-          } catch (imgErr) {
-            console.error('Auto image gen failed:', imgErr);
-          }
-        }
       }
     } catch (err: any) {
       console.error('Chat error:', err);

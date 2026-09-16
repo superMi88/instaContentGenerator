@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     } else if (action === 'edit') {
       // Multimodal Image Editing with Reference Image
       isAi = true;
-      const targetBg = backgroundColorHex || post.colors?.topBg;
+      const targetBg = backgroundColorHex || post.colors?.topBg || '#F0FDF4';
       let refBase64 = referenceImageBase64;
 
       if (!refBase64 && referenceImageUrl) {
@@ -98,9 +98,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
       imageBuffer = Buffer.from(genResult.base64Data, 'base64');
     } else {
-      // Generate using Gemini 2.5 Flash Image API with matching background color and optional style references
+      // Generate using Gemini 3.1 Flash Image API with matching background color and optional style references
       isAi = true;
-      const targetBg = backgroundColorHex || post.colors?.topBg;
+      const targetBg = backgroundColorHex || post.colors?.topBg || '#F0FDF4';
       let resolvedStyleImages: Array<{ base64Data: string; mimeType?: string }> = styleImages ? [...styleImages] : [];
 
       if (styleSetId && resolvedStyleImages.length === 0) {

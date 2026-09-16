@@ -1,6 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { PostMeta, PostSummary, PostStatus } from '@/types/post';
+import { sortPostSummaries } from './post-sorting';
+export { sortPostSummaries };
 
 const POSTS_DIR = path.join(process.cwd(), 'data', 'posts');
 
@@ -103,24 +105,38 @@ export async function listPosts(): Promise<PostSummary[]> {
     for (const dirName of postDirs) {
       const meta = await getPostMeta(dirName);
       if (meta) {
+        const firstSlide = meta.slides?.[0];
         summaries.push({
           id: meta.id,
           createdAt: meta.createdAt,
+          updatedAt: meta.updatedAt,
           topic: meta.topic,
           category: meta.category,
           slide1_question: meta.slide1_question,
           status: meta.status,
           scheduledAt: meta.scheduledAt,
           publishedAt: meta.publishedAt,
-          thumbnailUrl: `/api/posts/${meta.id}/assets/slide_1.png`,
+          thumbnailUrl: `/api/posts/${meta.id}/assets/slide_1.png?t=${new Date(meta.updatedAt || meta.createdAt).getTime()}`,
+          slideCount: meta.slides?.length || 2,
+          slide1: firstSlide
+            ? {
+                text: firstSlide.text,
+                subText: firstSlide.subText,
+                layoutType: firstSlide.layoutType,
+                imageUrl: firstSlide.imageUrl,
+                category: firstSlide.category,
+                imageZoom: firstSlide.imageZoom,
+                imageOffsetX: firstSlide.imageOffsetX,
+                imageOffsetY: firstSlide.imageOffsetY,
+              }
+            : undefined,
+          colors: meta.colors,
         });
       }
     }
 
-    // Sort descending by creation date
-    return summaries.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // Sort: Entwürfe zuerst, dann nach geplantem bzw. tatsächlichem Release-Datum
+    return sortPostSummaries(summaries);
   } catch (error) {
     console.error('Error listing posts:', error);
     return [];

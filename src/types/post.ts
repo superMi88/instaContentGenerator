@@ -13,6 +13,8 @@ export interface SlideItem {
   subText?: string;
   imageUrl?: string; // URL to the selected image from gallery or asset
   imageZoom?: number; // Zoom factor, e.g. 1.0 to 3.0 (default 1.0)
+  imageOffsetX?: number; // Horizontal offset in percent (-75 to 75, default 0)
+  imageOffsetY?: number; // Vertical offset in percent (-75 to 75, default 0)
   footerText?: string; // Editable footer text (e.g. "Wische nach links", "Deine Meinung?")
 }
 
@@ -32,11 +34,18 @@ export interface PostColors {
   categoryColor: string;// Category badge color (e.g. #F472B6, #818CF8)
 }
 
+export interface ToolExecution {
+  toolName: string;
+  label: string;
+  details?: Record<string, any>;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
   content: string;
   timestamp: string;
+  toolExecutions?: ToolExecution[];
 }
 
 export interface GeminiStructuredPost {
@@ -79,6 +88,7 @@ export interface PostMeta {
 export interface PostSummary {
   id: string;
   createdAt: string;
+  updatedAt?: string;
   topic: string;
   category: string;
   slide1_question: string;
@@ -87,4 +97,15 @@ export interface PostSummary {
   publishedAt: string | null;
   thumbnailUrl?: string;
   slideCount?: number;
+  slide1?: {
+    text: string;
+    subText?: string;
+    layoutType: SlideLayoutType;
+    imageUrl?: string;
+    category?: string;
+    imageZoom?: number;
+    imageOffsetX?: number;
+    imageOffsetY?: number;
+  };
+  colors?: PostColors;
 }

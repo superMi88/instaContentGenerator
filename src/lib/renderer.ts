@@ -16,6 +16,8 @@ export interface RenderSlideOptions {
   colors: PostColors;
   characterBase64?: string;
   imageZoom?: number;
+  imageOffsetX?: number;
+  imageOffsetY?: number;
   footerText?: string;
 }
 
@@ -115,6 +117,8 @@ export async function renderSlideToPng(options: RenderSlideOptions): Promise<Buf
     colors,
     characterBase64: customChar,
     imageZoom = 1,
+    imageOffsetX = 0,
+    imageOffsetY = 0,
     footerText,
   } = options;
 
@@ -202,6 +206,8 @@ export async function renderSlideToPng(options: RenderSlideOptions): Promise<Buf
     const zoomVal = Math.max(0.5, Math.min(4, imageZoom || 1));
     // Base size 864px (80% of 1080px width) fills the top half prominently with hero presence
     const imgSize = Math.round(864 * zoomVal);
+    const leftPx = Math.round(imgSize * ((imageOffsetX || 0) / 100));
+    const topPx = Math.round(imgSize * ((imageOffsetY || 0) / 100));
 
     slideElement = React.createElement(
       'div',
@@ -243,7 +249,9 @@ export async function renderSlideToPng(options: RenderSlideOptions): Promise<Buf
                 flexShrink: 0,
                 objectFit: 'cover',
                 position: 'relative',
-                zIndex: 10,
+                left: `${leftPx}px`,
+                top: `${topPx}px`,
+                zIndex: '10' as any,
               },
             })
           : null
@@ -368,6 +376,8 @@ export async function renderSlideToPng(options: RenderSlideOptions): Promise<Buf
     const zoomVal = Math.max(0.5, Math.min(4, imageZoom || 1));
     // Base size 1350px (100% of 1350px canvas height) covers full-bleed card artwork with zero empty top/bottom space
     const imgSize = Math.round(1350 * zoomVal);
+    const leftPx = Math.round(imgSize * ((imageOffsetX || 0) / 100));
+    const topPx = Math.round(imgSize * ((imageOffsetY || 0) / 100));
 
     slideElement = React.createElement(
       'div',
@@ -397,7 +407,9 @@ export async function renderSlideToPng(options: RenderSlideOptions): Promise<Buf
               flexShrink: 0,
               objectFit: 'cover',
               position: 'relative',
-              zIndex: 10,
+              left: `${leftPx}px`,
+              top: `${topPx}px`,
+              zIndex: '10' as any,
             },
           })
         : null,
@@ -412,7 +424,7 @@ export async function renderSlideToPng(options: RenderSlideOptions): Promise<Buf
             alignItems: 'center',
             justifyContent: 'center',
             width: '100%',
-            zIndex: 20,
+            zIndex: '20' as any,
           },
         },
         React.createElement(
@@ -612,6 +624,8 @@ export async function renderAllPostSlides(post: PostMeta): Promise<string[]> {
       colors: post.colors,
       characterBase64,
       imageZoom: slide.imageZoom || 1,
+      imageOffsetX: slide.imageOffsetX || 0,
+      imageOffsetY: slide.imageOffsetY || 0,
       footerText: slide.footerText,
     });
 

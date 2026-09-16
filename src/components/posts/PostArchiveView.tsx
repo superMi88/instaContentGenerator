@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { PostSummary } from '@/types/post';
+import { sortPostSummaries } from '@/lib/post-sorting';
 import { 
   FolderArchive, 
   Plus, 
@@ -13,10 +14,9 @@ import {
   CheckCircle2, 
   Layers, 
   Sparkles, 
-  Instagram, 
-  ExternalLink,
   Search,
-  Filter
+  ArrowUpDown,
+  FileText
 } from 'lucide-react';
 
 interface PostArchiveViewProps {
@@ -44,6 +44,7 @@ export const PostArchiveView: React.FC<PostArchiveViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
 
+  // Filter posts by tab and search term
   const filteredPosts = posts.filter((post) => {
     // Status filter
     if (activeFilter !== 'all' && post.status !== activeFilter) {
@@ -59,6 +60,9 @@ export const PostArchiveView: React.FC<PostArchiveViewProps> = ({
     }
     return true;
   });
+
+  // Sort posts: Entwürfe immer zuerst, dann geplante nach Release-Datum, dann veröffentlichte
+  const sortedPosts = sortPostSummaries(filteredPosts);
 
   const counts = {
     all: posts.length,
@@ -97,11 +101,11 @@ export const PostArchiveView: React.FC<PostArchiveViewProps> = ({
               <FolderArchive className="w-5 h-5" />
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Karussell-Archiv & Dashboard
+              Karussell-Archiv & Übersicht
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
-            Übersicht all deiner geplanten, veröffentlichten und in Bearbeitung befindlichen Instagram-Karussells.
+            Vorschau all deiner geplanten, versendeten und in Bearbeitung befindlichen Instagram-Karussells mit direktem Blick auf Slide 1.
           </p>
         </div>
 
@@ -167,26 +171,34 @@ export const PostArchiveView: React.FC<PostArchiveViewProps> = ({
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Veröffentlicht</span>
+            <span>Gesendet</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-white/20">{counts.published}</span>
           </button>
         </div>
 
-        {/* Search input */}
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Post suchen..."
-            className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
-          />
+        {/* Right side: Search & Sort order info */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400">
+            <ArrowUpDown className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="hidden sm:inline">Sortierung: Entwürfe zuerst • Nach Release-Datum</span>
+            <span className="sm:hidden">Entwürfe zuerst</span>
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Post suchen..."
+              className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Posts Grid */}
-      {filteredPosts.length === 0 ? (
+      {/* Posts Grid with Slide 1 Preview */}
+      {sortedPosts.length === 0 ? (
         <div className="glass-panel rounded-3xl p-12 text-center border border-slate-800 space-y-4">
           <div className="w-16 h-16 rounded-3xl bg-slate-800/80 flex items-center justify-center mx-auto text-slate-500 border border-slate-700">
             <FolderArchive className="w-8 h-8" />
@@ -210,8 +222,8 @@ export const PostArchiveView: React.FC<PostArchiveViewProps> = ({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredPosts.map((post) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {sortedPosts.map((post) => {
             const isDraft = post.status === 'draft';
             const isScheduled = post.status === 'scheduled';
             const isPublished = post.status === 'published';
@@ -220,73 +232,141 @@ export const PostArchiveView: React.FC<PostArchiveViewProps> = ({
               <div
                 key={post.id}
                 onClick={() => onSelectPost(post.id)}
-                className="group relative glass-panel rounded-3xl p-5 border border-slate-800/80 hover:border-indigo-500/60 transition-all duration-200 flex flex-col justify-between gap-4 cursor-pointer hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1"
+                className="group relative glass-panel rounded-3xl p-4 border border-slate-800/80 hover:border-indigo-500/60 transition-all duration-300 flex flex-col justify-between gap-3.5 cursor-pointer hover:shadow-2xl hover:shadow-indigo-500/15 hover:-translate-y-1 bg-slate-900/60"
               >
-                {/* Header: Category + Status Badge */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-800 text-indigo-300 border border-slate-700">
-                    {post.category || 'Allgemein'}
-                  </span>
+                {/* 1. VISUAL SLIDE 1 PREVIEW BOX (Instagram 4:5 Portrait Ratio) */}
+                <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-slate-950 border border-slate-800/80 shadow-inner group-hover:border-indigo-500/40 transition-colors">
+                  {/* High-Resolution Pre-Rendered Slide 1 Image */}
+                  <img
+                    src={post.thumbnailUrl || `/api/posts/${post.id}/assets/slide_1.png`}
+                    alt={post.slide1_question || post.topic}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                    onError={(e) => {
+                      // If PNG not yet generated, hide broken image to display HTML fallback
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
 
-                  {/* Status Indicator */}
-                  {isPublished && (
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>Gesendet</span>
-                    </span>
-                  )}
-                  {isScheduled && (
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 animate-pulse" />
-                      <span>Geplant</span>
-                    </span>
-                  )}
-                  {isDraft && (
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-800/80 text-slate-400 border border-slate-700">
-                      Entwurf
-                    </span>
-                  )}
-                </div>
-
-                {/* Body Content */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors line-clamp-2 leading-snug">
-                    {post.slide1_question || post.topic}
-                  </h4>
-                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                    {post.topic !== post.slide1_question ? post.topic : 'Klicke, um den Inhalt im Editor zu bearbeiten.'}
-                  </p>
-                </div>
-
-                {/* Timestamps Info */}
-                <div className="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1">
-                  {isScheduled && post.scheduledAt && (
-                    <div className="flex items-center gap-1.5 text-amber-300 font-medium">
-                      <Calendar className="w-3 h-3" />
-                      <span>Geplant für: {new Date(post.scheduledAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  {/* Fallback Live Representation (rendered if PNG is missing or loading) */}
+                  <div 
+                    className="absolute inset-0 flex flex-col -z-10 select-none pointer-events-none"
+                    style={{ backgroundColor: post.colors?.bottomBg || '#0F172A' }}
+                  >
+                    {/* Top Half: Pastel Background + Character Image */}
+                    <div 
+                      className="h-1/2 w-full flex items-center justify-center relative overflow-hidden"
+                      style={{ backgroundColor: post.colors?.topBg || '#F0FDF4' }}
+                    >
+                      {post.slide1?.imageUrl && (
+                        <img
+                          src={post.slide1.imageUrl}
+                          alt="Character"
+                          className="h-full w-auto object-contain"
+                        />
+                      )}
                     </div>
-                  )}
-                  {isPublished && post.publishedAt && (
-                    <div className="flex items-center gap-1.5 text-emerald-300 font-medium">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>Veröffentlicht am: {new Date(post.publishedAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+
+                    {/* Bottom Half: Accent Background + Question Text */}
+                    <div className="h-1/2 w-full p-4 flex flex-col justify-between">
+                      <span 
+                        className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full self-start"
+                        style={{
+                          backgroundColor: `${post.colors?.categoryColor || '#10B981'}25`,
+                          color: post.colors?.categoryColor || '#10B981',
+                        }}
+                      >
+                        {post.slide1?.category || post.category || 'Post'}
+                      </span>
+                      <p 
+                        className="text-xs font-bold line-clamp-3 leading-snug"
+                        style={{ color: post.colors?.textColor || '#FFFFFF' }}
+                      >
+                        {post.slide1?.text || post.slide1_question || post.topic}
+                      </p>
+                      <div className="h-1" />
                     </div>
-                  )}
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span>Erstellt: {new Date(post.createdAt).toLocaleDateString('de-DE')}</span>
-                    <span className="font-mono text-[10px]">ID: {post.id.slice(-6)}</span>
+                  </div>
+
+                  {/* FLOATING OVERLAYS ON TOP OF SLIDE 1 */}
+                  {/* Category Pill (Top Left) */}
+                  <div className="absolute top-2.5 left-2.5 z-10">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-950/85 text-indigo-300 border border-slate-700/80 backdrop-blur-md shadow-md">
+                      {post.category || 'Allgemein'}
+                    </span>
+                  </div>
+
+                  {/* Status Indicator (Top Right) */}
+                  <div className="absolute top-2.5 right-2.5 z-10">
+                    {isPublished && (
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/90 text-white backdrop-blur-md shadow-lg shadow-emerald-500/20 flex items-center gap-1 border border-emerald-400/40">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>Gesendet</span>
+                      </span>
+                    )}
+                    {isScheduled && (
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-500/90 text-white backdrop-blur-md shadow-lg shadow-amber-500/20 flex items-center gap-1 border border-amber-400/40">
+                        <Clock className="w-3 h-3 animate-pulse" />
+                        <span>Geplant</span>
+                      </span>
+                    )}
+                    {isDraft && (
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900/85 text-slate-300 border border-slate-700/80 backdrop-blur-md shadow-md">
+                        Entwurf
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Slide Count Pill (Bottom Right) */}
+                  <div className="absolute bottom-2.5 right-2.5 z-10">
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-lg bg-black/75 text-white/90 backdrop-blur-md border border-white/10 flex items-center gap-1 shadow-sm">
+                      <Layers className="w-3 h-3 text-indigo-300" />
+                      <span>{post.slideCount || 2} Slides</span>
+                    </span>
                   </div>
                 </div>
 
-                {/* Card Actions Bar */}
-                <div className="pt-2 flex items-center justify-between gap-2">
+                {/* 2. POST INFO & DATES */}
+                <div className="space-y-1.5 px-0.5">
+                  <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-indigo-300 transition-colors line-clamp-2 leading-snug">
+                    {post.slide1_question || post.topic}
+                  </h4>
+
+                  {/* Release date or scheduled date */}
+                  <div className="text-[11px] text-slate-400 space-y-0.5">
+                    {isScheduled && post.scheduledAt && (
+                      <div className="flex items-center gap-1.5 text-amber-300 font-semibold">
+                        <Calendar className="w-3 h-3 shrink-0" />
+                        <span className="truncate">
+                          Geplant: {new Date(post.scheduledAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    )}
+                    {isPublished && post.publishedAt && (
+                      <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
+                        <CheckCircle2 className="w-3 h-3 shrink-0" />
+                        <span className="truncate">
+                          Gesendet: {new Date(post.publishedAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    )}
+                    {isDraft && (
+                      <div className="flex items-center gap-1.5 text-slate-500">
+                        <FileText className="w-3 h-3 shrink-0" />
+                        <span>Entwurf erstellt: {new Date(post.createdAt).toLocaleDateString('de-DE')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. CARD ACTION BUTTONS */}
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
                   <button
                     type="button"
                     onClick={() => onSelectPost(post.id)}
                     className="flex-1 py-2 px-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
-                    <span>Bearbeiten</span>
+                    <span>Öffnen & Bearbeiten</span>
                   </button>
 
                   <button

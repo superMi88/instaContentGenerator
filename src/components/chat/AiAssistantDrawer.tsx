@@ -11,7 +11,14 @@ import {
   X, 
   Trash2, 
   MessageSquare,
-  Layers
+  Layers,
+  Sliders,
+  BookOpen,
+  Image as ImageIcon,
+  Wand2,
+  Plus,
+  FileText,
+  CheckCircle2
 } from 'lucide-react';
 import { ChatMessage } from '@/types/post';
 
@@ -33,11 +40,11 @@ interface AiAssistantDrawerProps {
 }
 
 const INSPIRATION_CHIPS = [
+  '📚 Wie waren meine alten Posts aufgebaut?',
+  '✏️ Bei Slide 1 soll der Text prägnanter sein',
+  '🎨 Mach das Bild auf Slide 1 freundlicher mit Lächeln',
+  '💡 Gib mir 3 virale Themenideen für Liebeskummer',
   '💔 Sollte man dem Ex zum Geburtstag gratulieren?',
-  '💼 Warum 80% Fleiß und 20% Strategie besser sind als 100% Überstunden',
-  '🧘‍♂️ Warum Einsamkeit manchmal das beste Geschenk ist',
-  '💸 Sollte man beim ersten Date getrennt zahlen?',
-  '🛑 Wann ist der richtige Zeitpunkt, einen Job zu kündigen?',
 ];
 
 export const AiAssistantDrawer: React.FC<AiAssistantDrawerProps> = ({
@@ -75,6 +82,29 @@ export const AiAssistantDrawer: React.FC<AiAssistantDrawerProps> = ({
     }
   };
 
+  const getToolIcon = (toolName: string) => {
+    switch (toolName) {
+      case 'get_previous_posts':
+        return <BookOpen className="w-3 h-3 text-amber-400" />;
+      case 'update_slide':
+        return <Sliders className="w-3 h-3 text-emerald-400" />;
+      case 'update_carousel':
+        return <Sparkles className="w-3 h-3 text-indigo-400" />;
+      case 'generate_image_for_slide':
+        return <ImageIcon className="w-3 h-3 text-pink-400" />;
+      case 'edit_image_for_slide':
+        return <Wand2 className="w-3 h-3 text-rose-400" />;
+      case 'add_slide':
+        return <Plus className="w-3 h-3 text-cyan-400" />;
+      case 'delete_slide':
+        return <Trash2 className="w-3 h-3 text-rose-400" />;
+      case 'update_instagram_caption':
+        return <FileText className="w-3 h-3 text-blue-400" />;
+      default:
+        return <CheckCircle2 className="w-3 h-3 text-indigo-400" />;
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-lg bg-slate-900 border-l border-slate-800 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
@@ -90,11 +120,11 @@ export const AiAssistantDrawer: React.FC<AiAssistantDrawerProps> = ({
                   KI-Content Assistent
                 </h3>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  gemini-2.5-flash
+                  Agent mit Tools
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Erstelle & optimiere Texte & Slides im Projektkontext
+                Chatten, Slides verfeinern, Bilder bearbeiten & alte Posts analysieren
               </p>
             </div>
           </div>
@@ -127,11 +157,11 @@ export const AiAssistantDrawer: React.FC<AiAssistantDrawerProps> = ({
             <div className="flex items-center gap-1.5 truncate">
               <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
               <span className="font-medium text-slate-300 truncate">
-                Kontext: {projectContext.topic || 'Aktueller Post'}
+                Kontext: {projectContext.topic || 'Aktueller Post'} ({projectContext.category})
               </span>
             </div>
             <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] font-medium text-indigo-300 shrink-0 ml-2">
-              {projectContext.slides.length} Slides
+              {projectContext.slides.length} Slides aktiv
             </span>
           </div>
         )}
@@ -148,7 +178,7 @@ export const AiAssistantDrawer: React.FC<AiAssistantDrawerProps> = ({
                   Wie kann ich dir helfen?
                 </h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Schreibe mir dein Thema oder deine Änderungswünsche. Ich kenne den aktuellen Text deiner Slides und passe alles direkt an.
+                  Schreibe mir frei oder gib mir konkrete Aufgaben. Ich passe Slides nur an, wenn du es möchtest, und zeige dir immer an, welche Werkzeuge ich benutze.
                 </p>
               </div>
 
@@ -156,14 +186,14 @@ export const AiAssistantDrawer: React.FC<AiAssistantDrawerProps> = ({
               <div className="w-full pt-4 text-left space-y-2">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-500">
                   <Lightbulb className="w-3 h-3 text-amber-400" />
-                  Themen-Ideen zum Start:
+                  Beispiele zum Ausprobieren:
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {INSPIRATION_CHIPS.map((chip, idx) => (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => setPrompt(chip)}
+                      onClick={() => setPrompt(chip.replace(/^[^\s]+\s/, ''))}
                       className="text-left text-xs px-3 py-2 rounded-xl bg-slate-800/60 hover:bg-indigo-950/40 hover:text-indigo-200 border border-slate-700/50 hover:border-indigo-500/40 transition text-slate-300"
                     >
                       {chip}
@@ -192,6 +222,20 @@ export const AiAssistantDrawer: React.FC<AiAssistantDrawerProps> = ({
                         : 'bg-slate-800/80 text-slate-200 border border-slate-700/60 rounded-tl-none'
                     }`}
                   >
+                    {/* Render Tool Badges if assistant executed tools */}
+                    {!isUser && msg.toolExecutions && msg.toolExecutions.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-slate-700/60">
+                        {msg.toolExecutions.map((tool, idx) => (
+                          <div
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-900/90 border border-slate-700/80 text-[10px] font-medium text-slate-300 shadow-sm"
+                          >
+                            {getToolIcon(tool.toolName)}
+                            <span>{tool.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                   </div>
                   {isUser && (
@@ -207,7 +251,7 @@ export const AiAssistantDrawer: React.FC<AiAssistantDrawerProps> = ({
           {isLoading && (
             <div className="flex items-center gap-2.5 text-xs text-indigo-400 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 animate-pulse">
               <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-              <span>Gemini denkt nach & optimiert deine Slides...</span>
+              <span>Assistent verarbeitet deine Anfrage...</span>
             </div>
           )}
 
@@ -226,8 +270,8 @@ export const AiAssistantDrawer: React.FC<AiAssistantDrawerProps> = ({
               onKeyDown={handleKeyDown}
               placeholder={
                 chatHistory.length === 0
-                  ? 'Gib ein Thema oder eine Anweisung ein...'
-                  : 'Anpassungswunsch (z. B. "Formuliere Slide 1 knackiger")...'
+                  ? 'Frag etwas, brainstorme oder gib eine Anweisung (z. B. "Ändere Slide 1")...'
+                  : 'Nachricht oder Anweisung eingeben...'
               }
               rows={2}
               className="w-full bg-transparent resize-none outline-none text-xs text-slate-200 placeholder:text-slate-500 px-2 py-1"

@@ -165,6 +165,16 @@ export const GalleryBox: React.FC<GalleryBoxProps> = ({
             <span>Eigenes Bild hochladen</span>
           </button>
 
+          {/* Oberer Hintergrund Indicator */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 shadow-sm" title={`Oberer Hintergrund: ${topBgColor || '#FFF1F5'}`}>
+            <span className="text-[11px] text-slate-400 font-medium">Oberer HG:</span>
+            <span
+              className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-sm shrink-0"
+              style={{ backgroundColor: topBgColor || '#FFF1F5' }}
+            />
+            <span className="font-mono text-[10px] text-indigo-300 font-semibold uppercase">{topBgColor || '#FFF1F5'}</span>
+          </div>
+
           <button
             type="button"
             onClick={() => onGenerateImage(currentPrompt || 'Cute chibi character')}
@@ -296,7 +306,7 @@ export const GalleryBox: React.FC<GalleryBoxProps> = ({
         {/* Mode 1: Ausgewähltes Bild gezielt anpassen */}
         {multimodalMode === 'edit_selected' ? (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
               <span>
                 {selectedImageForEdit ? (
                   <>Referenz: <strong className="text-indigo-300">{selectedImageForEdit.prompt ? selectedImageForEdit.prompt.slice(0, 30) + '...' : 'Ausgewähltes Bild'}</strong></>
@@ -304,57 +314,95 @@ export const GalleryBox: React.FC<GalleryBoxProps> = ({
                   'Wähle oben ein Bild aus, um es hier gezielt zu verändern.'
                 )}
               </span>
-              {selectedImageForEdit && (
-                <button
-                  type="button"
-                  onClick={(e) => handleDownload(e, selectedImageForEdit.url, selectedImageForEdit.filename)}
-                  className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[10px] font-medium flex items-center gap-1 transition shadow-sm"
-                  title="Ausgewähltes Bild herunterladen"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Bild herunterladen</span>
-                </button>
-              )}
-            </div>
-
-            {selectedImageForEdit ? (
-              <form onSubmit={handleEditSubmit} className="flex flex-col sm:flex-row items-center gap-2.5">
-                <div className="relative group/thumb shrink-0">
-                  <div className="w-10 h-10 rounded-xl overflow-hidden border border-indigo-500/50 bg-slate-900 shadow-md">
-                    <img src={selectedImageForEdit.url} alt="Referenzbild" className="w-full h-full object-cover" />
-                  </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px]" title="Die KI setzt den Hintergrund nahtlos auf diesen Farbwert">
+                  <span className="text-slate-400">Zielfarbe:</span>
+                  <span className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm shrink-0" style={{ backgroundColor: topBgColor || '#FFF1F5' }} />
+                  <span className="font-mono text-slate-300 font-semibold uppercase">{topBgColor || '#FFF1F5'}</span>
+                  <span className="text-[9px] text-slate-500 hidden sm:inline">(Oberer HG)</span>
+                </div>
+                {selectedImageForEdit && (
                   <button
                     type="button"
                     onClick={(e) => handleDownload(e, selectedImageForEdit.url, selectedImageForEdit.filename)}
-                    className="absolute inset-0 bg-black/70 rounded-xl flex items-center justify-center text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity"
-                    title="Herunterladen"
+                    className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[10px] font-medium flex items-center gap-1 transition shadow-sm"
+                    title="Ausgewähltes Bild herunterladen"
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-3 h-3" />
+                    <span>Download</span>
                   </button>
-                </div>
-                <div className="flex-1 w-full relative flex items-center bg-slate-950 rounded-xl border border-slate-800 focus-within:border-indigo-500 transition p-1">
-                  <input
-                    type="text"
-                    value={editInstruction}
-                    onChange={(e) => setEditInstruction(e.target.value)}
-                    placeholder="Änderung für dieses Bild (z.B. 'der soll keinen Hut tragen', 'blaue Haare', 'glücklich lächeln')..."
-                    className="w-full bg-transparent text-xs text-slate-200 placeholder:text-slate-500 px-3 py-1.5 outline-none"
-                    disabled={isEditingImage}
-                  />
+                )}
+              </div>
+            </div>
+
+            {selectedImageForEdit ? (
+              <div className="space-y-2">
+                <form onSubmit={handleEditSubmit} className="flex flex-col sm:flex-row items-center gap-2.5">
+                  <div className="relative group/thumb shrink-0">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden border border-indigo-500/50 bg-slate-900 shadow-md">
+                      <img src={selectedImageForEdit.url} alt="Referenzbild" className="w-full h-full object-cover" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDownload(e, selectedImageForEdit.url, selectedImageForEdit.filename)}
+                      className="absolute inset-0 bg-black/70 rounded-xl flex items-center justify-center text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                      title="Herunterladen"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1 w-full relative flex items-center bg-slate-950 rounded-xl border border-slate-800 focus-within:border-indigo-500 transition p-1">
+                    <input
+                      type="text"
+                      value={editInstruction}
+                      onChange={(e) => setEditInstruction(e.target.value)}
+                      placeholder={`Änderung für dieses Bild (z.B. 'Hintergrund auf ${topBgColor || '#FFF1F5'} anpassen', 'blaue Haare', 'glücklich lächeln')...`}
+                      className="w-full bg-transparent text-xs text-slate-200 placeholder:text-slate-500 px-3 py-1.5 outline-none"
+                      disabled={isEditingImage}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!editInstruction.trim() || isEditingImage}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition shrink-0 ml-1 shadow-md shadow-indigo-600/30"
+                    >
+                      {isEditingImage ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isEditingImage ? 'Passe an...' : 'Bild anpassen'}</span>
+                    </button>
+                  </div>
+                </form>
+
+                {/* Quick-Prompt Suggestions */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-[10px] text-slate-500 font-medium">Schnellwahl:</span>
                   <button
-                    type="submit"
-                    disabled={!editInstruction.trim() || isEditingImage}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition shrink-0 ml-1 shadow-md shadow-indigo-600/30"
+                    type="button"
+                    onClick={() => setEditInstruction(`Hintergrundfarbe auf ${topBgColor || '#FFF1F5'} anpassen`)}
+                    className="px-2 py-0.5 rounded-md bg-indigo-950/50 hover:bg-indigo-900/70 border border-indigo-500/30 text-[10px] text-indigo-300 hover:text-white transition flex items-center gap-1 active:scale-95"
+                    title="Setzt die Anweisung, den Hintergrund an den Oberen Hintergrund anzupassen"
                   >
-                    {isEditingImage ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Wand2 className="w-3.5 h-3.5" />
-                    )}
-                    <span>{isEditingImage ? 'Passe an...' : 'Bild anpassen'}</span>
+                    <span className="w-2 h-2 rounded-full border border-white/20 shrink-0" style={{ backgroundColor: topBgColor || '#FFF1F5' }} />
+                    <span>🎨 Hintergrund anpassen ({topBgColor || '#FFF1F5'})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditInstruction('Kopfbedeckung / Hut entfernen, Haare beibehalten')}
+                    className="px-2 py-0.5 rounded-md bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300 hover:text-white transition active:scale-95"
+                  >
+                    🎩 Hut entfernen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditInstruction('Glücklich und sympathisch in die Kamera lächeln')}
+                    className="px-2 py-0.5 rounded-md bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-300 hover:text-white transition active:scale-95"
+                  >
+                    😊 Lächeln
                   </button>
                 </div>
-              </form>
+              </div>
             ) : (
               <div className="p-3 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-xl">
                 Klicke oben auf ein Bild, um es hier gezielt mit KI anzupassen.
@@ -364,7 +412,7 @@ export const GalleryBox: React.FC<GalleryBoxProps> = ({
         ) : (
           /* Mode 2: Neues Bild im Set-Style erstellen */
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
               <div className="flex items-center gap-1.5">
                 <span>Stil-Vorlage:</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold flex items-center gap-1 shadow-sm">
@@ -375,16 +423,23 @@ export const GalleryBox: React.FC<GalleryBoxProps> = ({
                   ({activeImageSet?.images?.length || 0} {activeImageSet?.images?.length === 1 ? 'Bild im Set' : 'Bilder im Set'})
                 </span>
               </div>
-              {onOpenImageSetModal && (
-                <button
-                  type="button"
-                  onClick={onOpenImageSetModal}
-                  className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 hover:underline transition"
-                >
-                  <Layers className="w-3 h-3" />
-                  <span>Set wechseln</span>
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px]" title="Der Hintergrund wird automatisch an den Oberen Hintergrund angepasst">
+                  <span className="text-slate-400">Hintergrund:</span>
+                  <span className="w-2.5 h-2.5 rounded-full border border-white/20 shadow-sm shrink-0" style={{ backgroundColor: topBgColor || '#FFF1F5' }} />
+                  <span className="font-mono text-slate-300 font-semibold uppercase">{topBgColor || '#FFF1F5'}</span>
+                </div>
+                {onOpenImageSetModal && (
+                  <button
+                    type="button"
+                    onClick={onOpenImageSetModal}
+                    className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 hover:underline transition"
+                  >
+                    <Layers className="w-3 h-3" />
+                    <span>Set wechseln</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <form onSubmit={handleStyleSubmit} className="flex flex-col sm:flex-row items-center gap-2.5">
@@ -422,7 +477,7 @@ export const GalleryBox: React.FC<GalleryBoxProps> = ({
             </form>
 
             <p className="text-[10px] text-slate-500 px-1">
-              Erstellt ein brandneues Bild und übernimmt exakt Zeichentechnik, Schattierung und Farben des Bildersets.
+              Erstellt ein brandneues Bild und übernimmt exakt Zeichentechnik und Details des Bildersets. Der Hintergrund wird nahtlos an den Oberen Hintergrund angepasst.
             </p>
           </div>
         )}

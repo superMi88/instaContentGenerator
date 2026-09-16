@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { PostColors, SlideItem, SlideLayoutType, GalleryAsset, ImageSet } from '@/types/post';
 import { PRESET_THEMES } from '@/lib/gemini';
 import { GalleryBox } from './GalleryBox';
@@ -25,7 +25,13 @@ import {
   ZoomIn,
   Palette,
   Sliders,
-  Calendar
+  Calendar,
+  Move,
+  RotateCcw,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 
 interface SlidePreviewProps {
@@ -99,6 +105,113 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
     onPreviewModeChange?.(mode);
   };
   const [showColorDetails, setShowColorDetails] = useState<boolean>(false);
+  const [showPositionPopover, setShowPositionPopover] = useState<number | null>(null);
+  const [isDraggingImage, setIsDraggingImage] = useState<boolean>(false);
+  const [dragSlideIndex, setDragSlideIndex] = useState<number | null>(null);
+  const dragStartRef = useRef<{
+    startX: number;
+    startY: number;
+    initOffsetX: number;
+    initOffsetY: number;
+    imageSize: number;
+  } | null>(null);
+
+  const handleImageMouseDown = (
+    e: React.MouseEvent,
+    slideIndex: number,
+    currentOffsetX = 0,
+    currentOffsetY = 0,
+    imageSize = 320
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initOffsetX: currentOffsetX,
+      initOffsetY: currentOffsetY,
+      imageSize,
+    };
+    setIsDraggingImage(true);
+    setDragSlideIndex(slideIndex);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!dragStartRef.current) return;
+      const dx = moveEvent.clientX - dragStartRef.current.startX;
+      const dy = moveEvent.clientY - dragStartRef.current.startY;
+      const scale = dragStartRef.current.imageSize;
+      const newX = Math.round(Math.max(-75, Math.min(75, dragStartRef.current.initOffsetX + (dx / scale) * 100)));
+      const newY = Math.round(Math.max(-75, Math.min(75, dragStartRef.current.initOffsetY + (dy / scale) * 100)));
+      onUpdateSlide(slideIndex, { imageOffsetX: newX, imageOffsetY: newY });
+    };
+
+    const handleMouseUp = () => {
+      dragStartRef.current = null;
+      setIsDraggingImage(false);
+      setDragSlideIndex(null);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleImageTouchStart = (
+    e: React.TouchEvent,
+    slideIndex: number,
+    currentOffsetX = 0,
+    currentOffsetY = 0,
+    imageSize = 320
+  ) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    dragStartRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      initOffsetX: currentOffsetX,
+      initOffsetY: currentOffsetY,
+      imageSize,
+    };
+    setIsDraggingImage(true);
+    setDragSlideIndex(slideIndex);
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (!dragStartRef.current) return;
+      const t = moveEvent.touches[0];
+      if (!t) return;
+      const dx = t.clientX - dragStartRef.current.startX;
+      const dy = t.clientY - dragStartRef.current.startY;
+      const scale = dragStartRef.current.imageSize;
+      const newX = Math.round(Math.max(-75, Math.min(75, dragStartRef.current.initOffsetX + (dx / scale) * 100)));
+      const newY = Math.round(Math.max(-75, Math.min(75, dragStartRef.current.initOffsetY + (dy / scale) * 100)));
+      onUpdateSlide(slideIndex, { imageOffsetX: newX, imageOffsetY: newY });
+    };
+
+    const handleTouchEnd = () => {
+      dragStartRef.current = null;
+      setIsDraggingImage(false);
+      setDragSlideIndex(null);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
+  };
+
+  const handleNudge = (slideIndex: number, deltaX: number, deltaY: number) => {
+    const currentSlide = slides[slideIndex];
+    const curX = currentSlide?.imageOffsetX ?? 0;
+    const curY = currentSlide?.imageOffsetY ?? 0;
+    const newX = Math.round(Math.max(-75, Math.min(75, curX + deltaX)));
+    const newY = Math.round(Math.max(-75, Math.min(75, curY + deltaY)));
+    onUpdateSlide(slideIndex, { imageOffsetX: newX, imageOffsetY: newY });
+  };
+
+  const handleResetPosition = (slideIndex: number) => {
+    onUpdateSlide(slideIndex, { imageOffsetX: 0, imageOffsetY: 0 });
+  };
 
   // Keep index within bounds if a slide was deleted
   const safeSlideIndex = Math.min(currentSlideIndex, Math.max(0, slides.length - 1));
@@ -602,31 +715,187 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
                             className="w-full h-1/2 flex items-center justify-center relative overflow-hidden transition-colors group"
                             style={{ backgroundColor: colors.topBg }}
                           >
-                            {/* Floating Zoom Control (Top Center) */}
+                            {/* Floating Zoom & Position Control */}
                             {isActive && (
                               <div 
-                                className="absolute top-2.5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 shadow-lg text-slate-300"
+                                className="absolute top-2.5 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1.5"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <ZoomIn className="w-3 h-3 text-indigo-400 shrink-0" />
-                                <input
-                                  type="range"
-                                  min="0.6"
-                                  max="3.0"
-                                  step="0.05"
-                                  value={slide.imageZoom ?? 1}
-                                  onChange={(e) => onUpdateSlide(idx, { imageZoom: parseFloat(e.target.value) })}
-                                  className="w-14 sm:w-16 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                                  title="Bild-Zoomfaktor einstellen"
-                                />
-                                <span className="font-mono text-[9px] text-indigo-300 w-6 text-right">
-                                  {Math.round((slide.imageZoom ?? 1) * 100)}%
-                                </span>
+                                <div className="flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 shadow-xl text-slate-300">
+                                  <ZoomIn className="w-3 h-3 text-indigo-400 shrink-0" />
+                                  <input
+                                    type="range"
+                                    min="0.6"
+                                    max="3.0"
+                                    step="0.05"
+                                    value={slide.imageZoom ?? 1}
+                                    onChange={(e) => onUpdateSlide(idx, { imageZoom: parseFloat(e.target.value) })}
+                                    className="w-12 sm:w-16 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                    title="Bild-Zoomfaktor einstellen"
+                                  />
+                                  <span className="font-mono text-[9px] text-indigo-300 w-7 text-right">
+                                    {Math.round((slide.imageZoom ?? 1) * 100)}%
+                                  </span>
+
+                                  <div className="w-px h-3.5 bg-slate-700 mx-0.5" />
+
+                                  {/* Position Toggle Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowPositionPopover(showPositionPopover === idx ? null : idx)}
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1 transition ${
+                                      showPositionPopover === idx || (slide.imageOffsetX || slide.imageOffsetY)
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                                    }`}
+                                    title="Position anpassen (Verschieben)"
+                                  >
+                                    <Move className="w-2.5 h-2.5" />
+                                    <span className="text-[9px]">
+                                      {slide.imageOffsetX || slide.imageOffsetY
+                                        ? `${slide.imageOffsetX || 0}%, ${slide.imageOffsetY || 0}%`
+                                        : 'Position'}
+                                    </span>
+                                  </button>
+
+                                  {/* Quick Reset Button if offset is applied */}
+                                  {(slide.imageOffsetX || slide.imageOffsetY) ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleResetPosition(idx)}
+                                      className="p-1 rounded-full text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition"
+                                      title="Position auf Mitte (0,0) zurücksetzen"
+                                    >
+                                      <RotateCcw className="w-2.5 h-2.5" />
+                                    </button>
+                                  ) : null}
+                                </div>
+
+                                {/* Popover with Precision Position Controls (Sliders & Arrows) */}
+                                {showPositionPopover === idx && (
+                                  <div 
+                                    className="bg-slate-950/95 backdrop-blur-md p-3 rounded-2xl border border-indigo-500/40 shadow-2xl text-slate-200 w-56 space-y-2.5 animate-in fade-in zoom-in-95 duration-150"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 text-[11px] font-semibold text-slate-300">
+                                      <span className="flex items-center gap-1 text-indigo-300">
+                                        <Move className="w-3 h-3 text-indigo-400" />
+                                        Bild-Position
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleResetPosition(idx)}
+                                        className="text-[9px] text-amber-400 hover:text-amber-300 flex items-center gap-1 hover:underline"
+                                      >
+                                        <RotateCcw className="w-2.5 h-2.5" />
+                                        Zentrieren
+                                      </button>
+                                    </div>
+
+                                    {/* Nudge Arrows Pad */}
+                                    <div className="flex items-center justify-center gap-1 py-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleNudge(idx, -5, 0)}
+                                        className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition active:scale-95"
+                                        title="5% nach links"
+                                      >
+                                        <ArrowLeft className="w-3 h-3" />
+                                      </button>
+                                      <div className="flex flex-col gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleNudge(idx, 0, -5)}
+                                          className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition active:scale-95"
+                                          title="5% nach oben"
+                                        >
+                                          <ArrowUp className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleNudge(idx, 0, 5)}
+                                          className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition active:scale-95"
+                                          title="5% nach unten"
+                                        >
+                                          <ArrowDown className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleNudge(idx, 5, 0)}
+                                        className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition active:scale-95"
+                                        title="5% nach rechts"
+                                      >
+                                        <ArrowRight className="w-3 h-3" />
+                                      </button>
+                                    </div>
+
+                                    {/* X and Y Sliders */}
+                                    <div className="space-y-1.5 text-[10px]">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-slate-400">Horizontal (X):</span>
+                                        <span className="font-mono text-indigo-300 font-semibold">{slide.imageOffsetX ?? 0}%</span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min="-60"
+                                        max="60"
+                                        step="1"
+                                        value={slide.imageOffsetX ?? 0}
+                                        onChange={(e) => onUpdateSlide(idx, { imageOffsetX: parseInt(e.target.value, 10) })}
+                                        className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                      />
+
+                                      <div className="flex items-center justify-between pt-1">
+                                        <span className="text-slate-400">Vertikal (Y):</span>
+                                        <span className="font-mono text-indigo-300 font-semibold">{slide.imageOffsetY ?? 0}%</span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min="-60"
+                                        max="60"
+                                        step="1"
+                                        value={slide.imageOffsetY ?? 0}
+                                        onChange={(e) => onUpdateSlide(idx, { imageOffsetY: parseInt(e.target.value, 10) })}
+                                        className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                      />
+                                    </div>
+
+                                    <p className="text-[9px] text-slate-400 text-center leading-tight pt-1 border-t border-slate-800/80">
+                                      💡 Du kannst das Bild auch direkt mit der Maus anklicken & ziehen!
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             )}
 
-                            {/* Centered Image */}
-                            <div className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden">
+                            {/* Centered Image with Drag-to-Position */}
+                            <div
+                              className={`relative z-10 w-full h-full flex items-center justify-center overflow-hidden select-none group/img ${
+                                isActive ? (isDraggingImage && dragSlideIndex === idx ? 'cursor-grabbing' : 'cursor-grab') : ''
+                              }`}
+                              onMouseDown={(e) =>
+                                isActive &&
+                                handleImageMouseDown(
+                                  e,
+                                  idx,
+                                  slide.imageOffsetX ?? 0,
+                                  slide.imageOffsetY ?? 0,
+                                  Math.round(320 * (slide.imageZoom ?? 1))
+                                )
+                              }
+                              onTouchStart={(e) =>
+                                isActive &&
+                                handleImageTouchStart(
+                                  e,
+                                  idx,
+                                  slide.imageOffsetX ?? 0,
+                                  slide.imageOffsetY ?? 0,
+                                  Math.round(320 * (slide.imageZoom ?? 1))
+                                )
+                              }
+                              title={isActive ? "Klicken und ziehen, um das Bild zu verschieben" : undefined}
+                            >
                               <img
                                 src={slideImage}
                                 alt="Slide Artwork"
@@ -634,11 +903,27 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
                                 style={{
                                   width: `${Math.round(320 * (slide.imageZoom ?? 1))}px`,
                                   height: `${Math.round(320 * (slide.imageZoom ?? 1))}px`,
+                                  transform: `translate(${slide.imageOffsetX ?? 0}%, ${slide.imageOffsetY ?? 0}%)`,
                                   maxWidth: 'none',
                                   maxHeight: 'none',
                                   flexShrink: 0,
                                 }}
                               />
+
+                              {/* Drag Hint on hover */}
+                              {isActive && !isDraggingImage && (
+                                <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-slate-950/75 border border-white/10 text-[9px] text-slate-300 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none flex items-center gap-1 shadow-md">
+                                  <Move className="w-2.5 h-2.5 text-indigo-400" />
+                                  <span>Ziehen zum Verschieben</span>
+                                </div>
+                              )}
+
+                              {/* Live Dragging Coordinates */}
+                              {isDraggingImage && dragSlideIndex === idx && (
+                                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-indigo-950/90 border border-indigo-500/50 text-[10px] font-mono text-indigo-200 shadow-xl pointer-events-none animate-in fade-in">
+                                  X: {slide.imageOffsetX ?? 0}% | Y: {slide.imageOffsetY ?? 0}%
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -782,29 +1067,187 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
                           className="w-full h-full flex items-center justify-center relative overflow-hidden transition-colors"
                           style={{ backgroundColor: colors.topBg }}
                         >
+                          {/* Floating Zoom & Position Control */}
                           {isActive && (
                             <div 
-                              className="absolute top-2.5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 shadow-lg text-slate-300"
+                              className="absolute top-2.5 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1.5"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <ZoomIn className="w-3 h-3 text-indigo-400 shrink-0" />
-                              <input
-                                type="range"
-                                min="0.6"
-                                max="3.0"
-                                step="0.05"
-                                value={slide.imageZoom ?? 1}
-                                onChange={(e) => onUpdateSlide(idx, { imageZoom: parseFloat(e.target.value) })}
-                                className="w-14 sm:w-16 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                                title="Bild-Zoomfaktor einstellen"
-                              />
-                              <span className="font-mono text-[9px] text-indigo-300 w-6 text-right">
-                                {Math.round((slide.imageZoom ?? 1) * 100)}%
-                              </span>
+                              <div className="flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 shadow-xl text-slate-300">
+                                <ZoomIn className="w-3 h-3 text-indigo-400 shrink-0" />
+                                <input
+                                  type="range"
+                                  min="0.6"
+                                  max="3.0"
+                                  step="0.05"
+                                  value={slide.imageZoom ?? 1}
+                                  onChange={(e) => onUpdateSlide(idx, { imageZoom: parseFloat(e.target.value) })}
+                                  className="w-12 sm:w-16 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                  title="Bild-Zoomfaktor einstellen"
+                                />
+                                <span className="font-mono text-[9px] text-indigo-300 w-7 text-right">
+                                  {Math.round((slide.imageZoom ?? 1) * 100)}%
+                                </span>
+
+                                <div className="w-px h-3.5 bg-slate-700 mx-0.5" />
+
+                                {/* Position Toggle Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPositionPopover(showPositionPopover === idx ? null : idx)}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1 transition ${
+                                    showPositionPopover === idx || (slide.imageOffsetX || slide.imageOffsetY)
+                                      ? 'bg-indigo-600 text-white shadow-sm'
+                                      : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                                  }`}
+                                  title="Position anpassen (Verschieben)"
+                                >
+                                  <Move className="w-2.5 h-2.5" />
+                                  <span className="text-[9px]">
+                                    {slide.imageOffsetX || slide.imageOffsetY
+                                      ? `${slide.imageOffsetX || 0}%, ${slide.imageOffsetY || 0}%`
+                                      : 'Position'}
+                                  </span>
+                                </button>
+
+                                {/* Quick Reset Button if offset is applied */}
+                                {(slide.imageOffsetX || slide.imageOffsetY) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetPosition(idx)}
+                                    className="p-1 rounded-full text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition"
+                                    title="Position auf Mitte (0,0) zurücksetzen"
+                                  >
+                                    <RotateCcw className="w-2.5 h-2.5" />
+                                  </button>
+                                ) : null}
+                              </div>
+
+                              {/* Popover with Precision Position Controls (Sliders & Arrows) */}
+                              {showPositionPopover === idx && (
+                                <div 
+                                  className="bg-slate-950/95 backdrop-blur-md p-3 rounded-2xl border border-indigo-500/40 shadow-2xl text-slate-200 w-56 space-y-2.5 animate-in fade-in zoom-in-95 duration-150"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 text-[11px] font-semibold text-slate-300">
+                                    <span className="flex items-center gap-1 text-indigo-300">
+                                      <Move className="w-3 h-3 text-indigo-400" />
+                                      Bild-Position
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleResetPosition(idx)}
+                                      className="text-[9px] text-amber-400 hover:text-amber-300 flex items-center gap-1 hover:underline"
+                                    >
+                                      <RotateCcw className="w-2.5 h-2.5" />
+                                      Zentrieren
+                                    </button>
+                                  </div>
+
+                                  {/* Nudge Arrows Pad */}
+                                  <div className="flex items-center justify-center gap-1 py-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleNudge(idx, -5, 0)}
+                                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition active:scale-95"
+                                      title="5% nach links"
+                                    >
+                                      <ArrowLeft className="w-3 h-3" />
+                                    </button>
+                                    <div className="flex flex-col gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleNudge(idx, 0, -5)}
+                                        className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition active:scale-95"
+                                        title="5% nach oben"
+                                      >
+                                        <ArrowUp className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleNudge(idx, 0, 5)}
+                                        className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition active:scale-95"
+                                        title="5% nach unten"
+                                      >
+                                        <ArrowDown className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleNudge(idx, 5, 0)}
+                                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition active:scale-95"
+                                      title="5% nach rechts"
+                                    >
+                                      <ArrowRight className="w-3 h-3" />
+                                    </button>
+                                  </div>
+
+                                  {/* X and Y Sliders */}
+                                  <div className="space-y-1.5 text-[10px]">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-slate-400">Horizontal (X):</span>
+                                      <span className="font-mono text-indigo-300 font-semibold">{slide.imageOffsetX ?? 0}%</span>
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min="-60"
+                                      max="60"
+                                      step="1"
+                                      value={slide.imageOffsetX ?? 0}
+                                      onChange={(e) => onUpdateSlide(idx, { imageOffsetX: parseInt(e.target.value, 10) })}
+                                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                    />
+
+                                    <div className="flex items-center justify-between pt-1">
+                                      <span className="text-slate-400">Vertikal (Y):</span>
+                                      <span className="font-mono text-indigo-300 font-semibold">{slide.imageOffsetY ?? 0}%</span>
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min="-60"
+                                      max="60"
+                                      step="1"
+                                      value={slide.imageOffsetY ?? 0}
+                                      onChange={(e) => onUpdateSlide(idx, { imageOffsetY: parseInt(e.target.value, 10) })}
+                                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                    />
+                                  </div>
+
+                                  <p className="text-[9px] text-slate-400 text-center leading-tight pt-1 border-t border-slate-800/80">
+                                    💡 Du kannst das Bild auch direkt mit der Maus anklicken & ziehen!
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           )}
 
-                          <div className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden">
+                          {/* Centered Image with Drag-to-Position */}
+                          <div
+                            className={`relative z-10 w-full h-full flex items-center justify-center overflow-hidden select-none group/img ${
+                              isActive ? (isDraggingImage && dragSlideIndex === idx ? 'cursor-grabbing' : 'cursor-grab') : ''
+                            }`}
+                            onMouseDown={(e) =>
+                              isActive &&
+                              handleImageMouseDown(
+                                e,
+                                idx,
+                                slide.imageOffsetX ?? 0,
+                                slide.imageOffsetY ?? 0,
+                                Math.round(500 * (slide.imageZoom ?? 1))
+                              )
+                            }
+                            onTouchStart={(e) =>
+                              isActive &&
+                              handleImageTouchStart(
+                                e,
+                                idx,
+                                slide.imageOffsetX ?? 0,
+                                slide.imageOffsetY ?? 0,
+                                Math.round(500 * (slide.imageZoom ?? 1))
+                              )
+                            }
+                            title={isActive ? "Klicken und ziehen, um das Bild zu verschieben" : undefined}
+                          >
                             <img
                               src={slideImage}
                               alt="Full Slide Artwork"
@@ -812,11 +1255,27 @@ export const SlidePreview: React.FC<SlidePreviewProps> = ({
                               style={{
                                 width: `${Math.round(500 * (slide.imageZoom ?? 1))}px`,
                                 height: `${Math.round(500 * (slide.imageZoom ?? 1))}px`,
+                                transform: `translate(${slide.imageOffsetX ?? 0}%, ${slide.imageOffsetY ?? 0}%)`,
                                 maxWidth: 'none',
                                 maxHeight: 'none',
                                 flexShrink: 0,
                               }}
                             />
+
+                            {/* Drag Hint on hover */}
+                            {isActive && !isDraggingImage && (
+                              <div className="absolute top-14 right-2.5 px-2 py-0.5 rounded-full bg-slate-950/75 border border-white/10 text-[9px] text-slate-300 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none flex items-center gap-1 shadow-md">
+                                <Move className="w-2.5 h-2.5 text-indigo-400" />
+                                <span>Ziehen zum Verschieben</span>
+                              </div>
+                            )}
+
+                            {/* Live Dragging Coordinates */}
+                            {isDraggingImage && dragSlideIndex === idx && (
+                              <div className="absolute top-14 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-indigo-950/90 border border-indigo-500/50 text-[10px] font-mono text-indigo-200 shadow-xl pointer-events-none animate-in fade-in">
+                                X: {slide.imageOffsetX ?? 0}% | Y: {slide.imageOffsetY ?? 0}%
+                              </div>
+                            )}
                           </div>
 
                           <div className="absolute bottom-4 inset-x-4 flex items-center justify-center z-20 pointer-events-auto">

@@ -17,7 +17,21 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Ungültiger Dateiname.' }, { status: 400 });
     }
 
-    const buffer = await getPostAsset(id, filename);
+    let buffer = await getPostAsset(id, filename);
+    if (!buffer && isValidSlide) {
+      try {
+        const { getPostMeta } = await import('@/lib/storage');
+        const { renderAllPostSlides } = await import('@/lib/renderer');
+        const post = await getPostMeta(id);
+        if (post) {
+          await renderAllPostSlides(post);
+          buffer = await getPostAsset(id, filename);
+        }
+      } catch (renderErr) {
+        console.error('On-demand slide rendering failed:', renderErr);
+      }
+    }
+
     if (!buffer) {
       return NextResponse.json({ error: 'Datei nicht gefunden.' }, { status: 404 });
     }
